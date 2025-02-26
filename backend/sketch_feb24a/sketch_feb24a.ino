@@ -2,10 +2,11 @@
 #include <PubSubClient.h> // Bibliothèque MQTT pour ESP32
 #include <FastLED.h>
 #include <HTTPClient.h>  // Ajoutez cette ligne
+#include <ArduinoJson.h>
 
 // Configuration Wi-Fi
-const char *ssid = "Livebox-DE34_exterieur";
-const char *password = "N5x479G7PxzCzb5Cts";
+const char *ssid = "CFAINSTA_STUDENTS";
+const char *password = "Cf@InSt@-$tUd3nT";
 
 // Configuration MQTT
 const char* mqtt_server = "test.mosquitto.org"; // Broker MQTT public
@@ -107,27 +108,52 @@ void loop() {
 
 // Fonction de rappel pour les messages MQTT reçus
 void callback(char* topic, byte* payload, unsigned int length) {
-  String message = "";
-  for (int i = 0; i < length; i++) {
-    message += (char)payload[i];
-  }
-  
-  Serial.print("Message reçu [");
-  Serial.print(topic);
-  Serial.print("]: ");
-  Serial.println(message);
-  
-  // Traitement des commandes reçues
-  if (message == "rouge") {
-    etatDrapeau = "rouge";
-    allumerLEDs(CRGB(255, 0, 0));
-  } else if (message == "bleu") {
-    etatDrapeau = "bleu";
-    allumerLEDs(CRGB(0, 0, 255));
-  } else if (message == "inactif" || message == "off") {
-    etatDrapeau = "inactif";
-    eteindreLEDs();
-  }
+    String message = "";
+    for (int i = 0; i < length; i++) {
+        message += (char)payload[i];
+    }
+    
+    Serial.print("Message reçu [");
+    Serial.print(topic);
+    Serial.print("]: ");
+    Serial.println(message);
+    
+    // Essayer de parser comme JSON
+    DynamicJsonDocument doc(256);
+    DeserializationError error = deserializeJson(doc, message);
+    
+    if (!error) {
+        // C'est un message JSON
+        if (doc.containsKey("type") && doc["type"] == "color") {
+            // C'est une commande de couleur
+            String colorHex = doc["value"].as<String>();
+            Serial.print("Couleur reçue: ");
+            Serial.println(colorHex);
+            
+            // Convertir la couleur HEX en RGB
+            long colorValue = strtol(colorHex.substring(1).c_str(), NULL, 16);
+            int r = (colorValue >> 16) & 0xFF;
+            int g = (colorValue >> 8) & 0xFF;
+            int b = colorValue & 0xFF;
+            
+            // Allumer les LEDs avec cette couleur
+            allumerLEDs(CRGB(r, g, b));
+            etatDrapeau = "personnalise";
+            publierEtat();
+        }
+    } else {
+        // C'est un message texte classique
+        if (message == "rouge") {
+            etatDrapeau = "rouge";
+            allumerLEDs(CRGB(255, 0, 0));
+        } else if (message == "bleu") {
+            etatDrapeau = "bleu";
+            allumerLEDs(CRGB(0, 0, 255));
+        } else if (message == "inactif" || message == "off") {
+            etatDrapeau = "inactif";
+            eteindreLEDs();
+        }
+    }
 }
 
 void publierEtat() {

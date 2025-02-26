@@ -1,0 +1,105 @@
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .drapeau {
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 5px;
+  }
+  .etat {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 10px;
+    background-color: #ccc;
+  }
+  .etat.rouge { background-color: red; }
+  .etat.bleu { background-color: blue; }
+  .etat.inactif { background-color: #ccc; }
+  .controles {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+  }
+  button {
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+  .historique {
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .log-entry {
+    margin-bottom: 5px;
+    font-size: 14px;
+  }
+
+  .container-selector-color { 
+    margin: 0px auto;
+    width: 500px;
+  }
+  
+  .color-select {
+    border: 2px solid #3E3E3E;
+    padding: 10px;
+  }
+  .color-select > span { 
+    text-transform: uppercase;
+    padding: 8px 0;
+    display: block;
+    cursor: pointer;
+  }
+  .color-select > span span { margin-top: -8px }
+  .color-select ul {
+    width: 100%;
+    overflow: visible;
+    padding: 0;
+    border-top: 1px solid #3E3E3E;
+    display: none;
+  }
+  .color-select ul:after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+  .color-select ul li, .color-select > span span { 
+    list-style: none;
+    width: 30px;
+    height: 30px;
+    display: block;
+    border-radius: 50%;
+    background: #fff;
+    float: left;
+    margin: 0 12px;
+    cursor: pointer;
+    position: relative;
+    top: -7px;
+  }
+  .color-select ul li { 
+    margin-top: 25px; 
+    -webkit-transition: all .3s ease-in-out;
+    -moz-transition: all .3s ease-in-out;
+    -ms-transition: all .3s ease-in-out;
+    -o-transition: all .3s ease-in-out;
+    transition: all .3s ease-in-out; 
+  }
+  .color-select ul li span { display: none; }
+  .color-select ul li:hover { 
+    -webkit-transform:scale(1.15);
+    -moz-transform:scale(1.15);
+    -ms-transform:scale(1.15);
+    -o-transform:scale(1.15);
+    transform:scale(1.15);
+  }
