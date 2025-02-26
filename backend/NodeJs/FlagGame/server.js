@@ -71,11 +71,23 @@ io.on('connection', (socket) => {
     // Publier la commande sur MQTT
     mqttClient.publish(drapeauxTopicPublish, data.commande);
   });
-  
+    // Ajouter dans votre code serveur, dans la section "Écouter les commandes du client web"
+  socket.on('commande-couleur', (data) => {
+    console.log('Commande couleur reçue du client web:', data);
+    // Publier la commande sur MQTT avec un format spécifique
+    // On utilise un format JSON pour distinguer les commandes de couleur des autres commandes
+    const colorCommand = JSON.stringify({
+        type: 'color',
+        value: data.couleur
+    });
+    mqttClient.publish(drapeauxTopicPublish, colorCommand);
+  });
+
   socket.on('disconnect', () => {
     console.log('Client web déconnecté');
   });
 });
+
 
 // Démarrer le serveur HTTP
 const PORT = process.env.PORT || 3000;
