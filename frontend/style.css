@@ -17,6 +17,14 @@ body {
   display: flex;
   justify-content: space-around;
   flex-direction: row;
+  margin-bottom: 20%;
+}
+.center{
+  display: flex;
+  justify-content: center;
+}
+.score{
+  margin-top: 27%!important;
 }
 .container {
   display: flex;
@@ -91,7 +99,8 @@ h2{
   -webkit-user-select: none;
   touch-action: manipulation;
   vertical-align: baseline;
-  width: auto;
+  width: 50%;
+  align-self: center;
 }
 
 .button-6:hover,
@@ -127,6 +136,9 @@ h2{
 .container-selector-color { 
   margin: 0px auto;
   width: 500px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .color-select {
