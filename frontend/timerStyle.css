@@ -1,0 +1,72 @@
+#timer{
+    font-weight: bold;
+    font-size: 28vw;
+    text-align: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Option pop up */
+h1{font: 4.5vw "Geneva", sans-serif; margin: 0 15px 0 0;}
+.second-part{margin-top: 12vh;}
+.light-margin{margin-right: 5%;}
+
+.minute{
+    font: 27vh "Geneva",
+    sans-serif;
+    margin-top: -5vh;
+}
+
+.line{
+    display: flex;
+    flex-direction: row;
+}
+
+.space-between{justify-content: space-between;}
+
+.overley{
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    transition: opacity 500ms;
+    visibility: hidden;
+    opacity: 0;
+}
+
+.overley:target{
+    visibility: visible;
+    opacity: 1;
+}
+
+.popup{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    padding: 1%;
+    background: #fff;
+    border-radius: 5px;
+    width: 100%;
+    height: 20%;
+    transition: all 5s ease-in-out;
+}
+
+/*Option button*/
+.styled{
+    border: 0;
+    padding: 0 20px;
+    font-size: 13vw;
+    color: #FFFF;
+    text-shadow: 1px 1px 1px #000;
+    border-radius: 10px;
+    background-color: Grey;
+    margin-right: 5%;
+    height: 9.2vw;
+}
+
+.minus{margin-top: -57%; width: 7vw;}
+.plus{margin-top: -37%;}

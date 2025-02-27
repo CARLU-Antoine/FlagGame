@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrôle des Drapeaux Communicants</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="headerImg"><img src="assets/FlagGame_Image.png" alt=""></div>
+    
+    <div class="container">
+        <div class="container-selector-color">
+            <form id="myForm">
+                <h2>Entre ton pseudo:</h2>
+
+                <input type="text" id="name" name="name" class="custom-input" placeholder="-" required>
+
+                <h2>Choisis ta couleur:</h2>
+
+                <select id="data-colorselect" data-colorselect>
+                    <option value="#000000">Black</option>
+                    <option value="#2ecc71">Green</option>
+                    <option value="#27ae60">Dark Green</option>
+                    <option value="#3498db">Blue</option>
+                    <option value="#2980b9">Dark Blue</option>
+                    <option value="#9b59b6">Purple</option>
+                    <option value="#8e44ad">Dark Purple</option>
+                    <option value="#1abc9c">Turquoise</option>
+                    <option value="#16a085">Dark Turquoise</option>
+                    <option value="#e74c3c">Red</option>
+                    <option value="#c0392b">Dark Red</option>
+                    <option value="#f1c40f">Yellow</option>
+                    <option value="#f39c12">Gold</option>
+                    <option value="#e67e22">Orange</option>
+                    <option value="#d35400">Dark Orange</option>
+                    <option value="#7f8c8d">Grey</option>
+                    <option value="#95a5a6">Light Grey</option>
+                    <option value="#34495e">Navy</option>
+                    <option value="#2c3e50">Dark Navy</option>
+                    <option value="#bdc3c7">Silver</option>
+                    <option value="#ecf0f1">Cloud</option>
+                    <option value="#ff00ff">Magenta</option>
+                    <option value="#800080">Deep Purple</option>
+                    <option value="#ff4500">Orangered</option>
+                    <option value="#8b0000">Maroon</option>
+                    <option value="#ff6347">Tomato</option>
+                    <option value="#00ff00">Lime</option>
+                    <option value="#00ced1">Dark Turquoise</option>
+                    <option value="#4682b4">Steel Blue</option>
+                </select>
+
+                <div class="center"><button type="submit" class="button-6">Valider</button></div>
+            </form>
+
+        </div>
+    </div>
+
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById("myForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Empêche l'envoi par défaut
+
+            let nameValue = document.getElementById("name").value;
+            let colorValue = document.getElementById("data-colorselect").value;
+            console.log("Nom saisi :", nameValue); // Affiche dans la console
+            console.log("Couleur choisi :", colorValue); // Affiche dans la console
+            alert("Formulaire soumis avec succès !");
+        });
+    </script>
+
+</body>
+</html>
