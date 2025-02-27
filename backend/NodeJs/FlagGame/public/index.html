@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contrôle de Drapeaux - Deux Joueurs</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .container {
+      display: flex;
+      gap: 20px;
+    }
+    
+    .panel {
+      flex: 1;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+    }
+    
+    button {
+      padding: 10px;
+      cursor: pointer;
+    }
+    
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    
+    .color-preview {
+      width: 30px;
+      height: 30px;
+      display: inline-block;
+      border: 1px solid #333;
+      vertical-align: middle;
+    }
+    
+    label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Système de Drapeaux à Deux Joueurs</h1>
+  
+  <div class="container">
+    <div class="panel">
+      <h2>Joueur 1</h2>
+      <div>
+        <label for="joueur1-nom">Nom du joueur:</label>
+        <input type="text" id="joueur1-nom" placeholder="Nom du Joueur 1">
+      </div>
+      
+      <div>
+        <label>Couleur:</label>
+        <input type="color" id="joueur1-couleur" value="#ff0000">
+        <span class="color-preview" id="joueur1-preview" style="background-color: #ff0000;"></span>
+      </div>
+      
+      <div class="controls">
+        <button id="joueur1-update">Mettre à jour</button>
+        <button id="joueur1-activer">Activer Drapeau Joueur 1</button>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <h2>Joueur 2</h2>
+      <div>
+        <label for="joueur2-nom">Nom du joueur:</label>
+        <input type="text" id="joueur2-nom" placeholder="Nom du Joueur 2">
+      </div>
+      
+      <div>
+        <label>Couleur:</label>
+        <input type="color" id="joueur2-couleur" value="#0000ff">
+        <span class="color-preview" id="joueur2-preview" style="background-color: #0000ff;"></span>
+      </div>
+      
+      <div class="controls">
+        <button id="joueur2-update">Mettre à jour</button>
+        <button id="joueur2-activer">Activer Drapeau Joueur 2</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="controls button-group">
+    <button id="btn-desactiver">Désactiver Drapeau</button>
+  </div>
+  
+  <div class="status">
+    <h3>État actuel</h3>
+    <p id="etat-drapeau">En attente de données...</p>
+  </div>
+  
+  <script>
+    // Connexion à WebSocket
+    const socket = new WebSocket('ws://localhost:3000');  // Assurez-vous que votre serveur écoute sur ce port
+
+    // Sélection des éléments DOM
+    const joueur1Nom = document.getElementById('joueur1-nom');
+    const joueur1Couleur = document.getElementById('joueur1-couleur');
+    const joueur1Preview = document.getElementById('joueur1-preview');
+    const joueur1Update = document.getElementById('joueur1-update');
+    const joueur1Activer = document.getElementById('joueur1-activer');
+    
+    const joueur2Nom = document.getElementById('joueur2-nom');
+    const joueur2Couleur = document.getElementById('joueur2-couleur');
+    const joueur2Preview = document.getElementById('joueur2-preview');
+    const joueur2Update = document.getElementById('joueur2-update');
+    const joueur2Activer = document.getElementById('joueur2-activer');
+    
+    const btnDesactiver = document.getElementById('btn-desactiver');
+    const etatDrapeau = document.getElementById('etat-drapeau');
+    
+    // Fonction pour convertir hex en RGB
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 0, g: 0, b: 0 };
+    }
+    
+    // Fonction pour convertir RGB en hex
+    function rgbToHex(r, g, b) {
+      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+    
+    // WebSocket events
+    socket.addEventListener('open', () => {
+      console.log('Connecté au serveur WebSocket');
+    });
+    
+    socket.addEventListener('message', (event) => {
+      const data = JSON.parse(event.data);
+      console.log('Données reçues:', data);
+      
+      if (data.type === 'info-joueurs') {
+        // Mettre à jour les informations du joueur 1
+        if (data.joueur1) {
+          joueur1Nom.value = data.joueur1.nom || '';
+          const hexColor = rgbToHex(data.joueur1.r, data.joueur1.g, data.joueur1.b);
+          joueur1Couleur.value = hexColor;
+          joueur1Preview.style.backgroundColor = hexColor;
+        }
+        
+        // Mettre à jour les informations du joueur 2
+        if (data.joueur2) {
+          joueur2Nom.value = data.joueur2.nom || '';
+          const hexColor = rgbToHex(data.joueur2.r, data.joueur2.g, data.joueur2.b);
+          joueur2Couleur.value = hexColor;
+          joueur2Preview.style.backgroundColor = hexColor;
+        }
+      } else if (data.type === 'etat-drapeau') {
+        let texteEtat = '';
+        
+        if (data.etat === 'inactif' || data.etat === 'off') {
+          texteEtat = 'Drapeau inactif';
+        } else if (data.etat === 'joueur1') {
+          texteEtat = `Drapeau actif: ${data.nom || 'Joueur 1'}`;
+          if (data.couleur) {
+            texteEtat += ` (Couleur: RGB(${data.couleur.r}, ${data.couleur.g}, ${data.couleur.b}))`;
+          }
+        } else if (data.etat === 'joueur2') {
+          texteEtat = `Drapeau actif: ${data.nom || 'Joueur 2'}`;
+          if (data.couleur) {
+            texteEtat += ` (Couleur: RGB(${data.couleur.r}, ${data.couleur.g}, ${data.couleur.b}))`;
+          }
+        } else {
+          texteEtat = `État du drapeau: ${data.etat}`;
+        }
+        
+        etatDrapeau.textContent = texteEtat;
+      }
+    });
+    
+    // Événements des boutons
+    joueur1Update.addEventListener('click', () => {
+      const rgb = hexToRgb(joueur1Couleur.value);
+      joueur1Preview.style.backgroundColor = joueur1Couleur.value;
+      
+      socket.send(JSON.stringify({
+        type: 'update-joueur',
+        joueur: 'joueur1',
+        info: {
+          nom: joueur1Nom.value,
+          r: rgb.r,
+          g: rgb.g,
+          b: rgb.b
+        }
+      }));
+    });
+    
+    joueur2Update.addEventListener('click', () => {
+      const rgb = hexToRgb(joueur2Couleur.value);
+      joueur2Preview.style.backgroundColor = joueur2Couleur.value;
+      
+      socket.send(JSON.stringify({
+        type: 'update-joueur',
+        joueur: 'joueur2',
+        info: {
+          nom: joueur2Nom.value,
+          r: rgb.r,
+          g: rgb.g,
+          b: rgb.b
+        }
+      }));
+    });
+    
+    joueur1Activer.addEventListener('click', () => {
+      socket.send(JSON.stringify({ type: 'commande-drapeau', commande: 'joueur1' }));
+    });
+    
+    joueur2Activer.addEventListener('click', () => {
+      socket.send(JSON.stringify({ type: 'commande-drapeau', commande: 'joueur2' }));
+    });
+    
+    btnDesactiver.addEventListener('click', () => {
+      socket.send(JSON.stringify({ type: 'commande-drapeau', commande: 'inactif' }));
+    });
+    
+    // Mise à jour des aperçus de couleur lors du changement
+    joueur1Couleur.addEventListener('input', () => {
+      joueur1Preview.style.backgroundColor = joueur1Couleur.value;
+    });
+    
+    joueur2Couleur.addEventListener('input', () => {
+      joueur2Preview.style.backgroundColor = joueur2Couleur.value;
+    });
+  </script>
+</body>
+</html>

@@ -50,10 +50,6 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Mise à jour de la valeur du select
             select.value = color;
-            
-            // NOUVEAU: Déclencher manuellement l'envoi de la couleur
-            envoyerCommandeCouleur(color);
-            console.log('Couleur sélectionnée et envoyée:', color);
         }
     });
     
@@ -64,17 +60,3 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 });
-
-// Fonction pour envoyer une commande de couleur personnalisée
-function envoyerCommandeCouleur(couleur) {
-    // Côté serveur Node.js, dans la section Socket.IO
-    socket.on('commande-couleur', (data) => {
-        console.log('Commande couleur reçue du client web:', data);
-        // Publier la commande sur MQTT
-        const colorCommand = JSON.stringify({
-            type: 'color',
-            value: data.couleur
-        });
-        mqttClient.publish(drapeauxTopicPublish, colorCommand);
-    });
-}

@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contrôle des Drapeaux Communicants</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../css/select_color.css">
+    <link rel="stylesheet" href="../css/loader.css">
 </head>
 <body>
-    <div class="headerImg"><img src="assets/FlagGame_Image.png" alt=""></div>
+    <div class="headerImg"><img src="../assets/FlagGame_Image.png" alt=""></div>
     
     <div class="container">
         <div class="container-selector-color">
@@ -19,7 +20,6 @@
                 <h2>Choisis ta couleur:</h2>
 
                 <select id="data-colorselect" data-colorselect>
-                    <option value="#000000">Black</option>
                     <option value="#2ecc71">Green</option>
                     <option value="#27ae60">Dark Green</option>
                     <option value="#3498db">Blue</option>
@@ -50,25 +50,15 @@
                     <option value="#4682b4">Steel Blue</option>
                 </select>
 
-                <div class="center"><button type="submit" class="button-6">Valider</button></div>
+                <div class="center" id="btn-validation-connexion"><button type="submit" class="button-6">Valider</button></div>
+                
+                <div class="center" id="loader"></div>
+                
             </form>
 
         </div>
     </div>
-
-
-    <script src="script.js"></script>
-    <script>
-        document.getElementById("myForm").addEventListener("submit", function(event) {
-            event.preventDefault(); // Empêche l'envoi par défaut
-
-            let nameValue = document.getElementById("name").value;
-            let colorValue = document.getElementById("data-colorselect").value;
-            console.log("Nom saisi :", nameValue); // Affiche dans la console
-            console.log("Couleur choisi :", colorValue); // Affiche dans la console
-            alert("Formulaire soumis avec succès !");
-        });
-    </script>
-
+    <script src="../script/connexion.js"></script>
+    <script src="../script/select_color.js"></script>
 </body>
 </html>

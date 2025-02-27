@@ -1,0 +1,19 @@
+#loader {
+    display: none;
+    width: 60px;
+    height: 60px;
+    border: 6px solid transparent;
+    border-top: 6px solid #5104ea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite, glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes glow {
+    0% { box-shadow: 0 0 10px #5104ea; }
+    100% { box-shadow: 0 0 30px #5104ea; }
+}

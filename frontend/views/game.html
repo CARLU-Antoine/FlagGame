@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contrôle des Drapeaux Communicants</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../css/select_color.css">
 </head>
 <body>
     <div class="headerImg"><img src="assets/FlagGame_Image.png" alt=""></div>
@@ -13,14 +13,15 @@
     <div class="container">     
         <div class="container-selector-color score">
             <div class="row">
-                <div><h2>Équipe 1:</h2><h1 class="center" id="FirstSquad"></h1></div>
-                <div><h2>Équipe 2:</h2><h1 class="center" id="SecondSquad"></h1></div>
+                <div><h2 id="pseudo-equipe1"></h2><h1 class="center" id="scoreFirstSquad"></h1></div>
+                <div><h2 id="pseudo-equipe2"></h2><h1 class="center" id="scoreSecondSquad"></h1></div>
             </div>
-            <button type='submit' class='button-6' onclick="window.location.href='lobby.html'">Quitter</button>
+            <button id="btn-quitter" class='button-6'>Quitter</button>
         </div>
     </div>
 
-    <script src="timer.js"></script>
+    <script src="../script/jeux.js"></script>
+    <script src="../script/timer.js"></script>
 
 </body>
 </html>

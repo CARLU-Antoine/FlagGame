@@ -1,7 +1,8 @@
 #include <WiFi.h>
 #include <PubSubClient.h> // Bibliothèque MQTT pour ESP32
 #include <FastLED.h>
-#include <HTTPClient.h>  // Ajoutez cette ligne
+#include <HTTPClient.h>
+#include <ArduinoJson.h> // Ajouté pour gérer les données JSON
 
 // Configuration Wi-Fi
 const char *ssid = "Livebox-DE34_exterieur";
@@ -12,8 +13,9 @@ const char* mqtt_server = "test.mosquitto.org"; // Broker MQTT public
 const int mqtt_port = 1883;
 const char* mqtt_topic_publish = "drapeaux/etat";
 const char* mqtt_topic_subscribe = "drapeaux/commande";
+const char* mqtt_topic_joueurs = "drapeaux/joueurs"; // Topic pour les informations des joueurs
 
-// Configuration ThingSpeak (pour la compatibilité avec votre système existant)
+// Configuration ThingSpeak
 const char *writeAPIKey = "2NMQ56VK7L5MN48P";
 const char *server = "http://api.thingspeak.com/update";
 
@@ -28,9 +30,28 @@ const int bouton1 = 0; // Bouton BOOT
 const int bouton2 = 4; // Deuxième bouton
 
 // Variables d'état
-String etatDrapeau = "inactif"; // inactif, rouge, bleu
+String etatDrapeau = "inactif"; // inactif, joueur1, joueur2
 unsigned long dernierEnvoi = 0;
 const long intervalle = 5000; // Intervalle d'envoi en ms
+
+
+unsigned long debutAppuiBouton1 = 0;
+unsigned long debutAppuiBouton2 = 0;
+bool bouton1Maintenu = false;
+bool bouton2Maintenu = false;
+const unsigned long dureePression = 3000;
+
+
+// Informations des joueurs
+struct Joueur {
+  String nom;
+  uint8_t couleurR;
+  uint8_t couleurG;
+  uint8_t couleurB;
+};
+
+Joueur joueur1 = {"Joueur1", 255, 0, 0}; // Rouge par défaut
+Joueur joueur2 = {"Joueur2", 0, 0, 255}; // Bleu par défaut
 
 // Clients WiFi et MQTT
 WiFiClient espClient;
@@ -58,52 +79,52 @@ void setup() {
 }
 
 void loop() {
-  // Vérifier la connexion WiFi
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("Connexion WiFi perdue, tentative de reconnexion...");
     connecterWiFi();
   }
-  
-  // Vérifier la connexion MQTT et reconnecter si nécessaire
+
   if (!client.connected()) {
     reconnecterMQTT();
   }
   client.loop();
-  
-  // Gestion des boutons
-  if (digitalRead(bouton1) == LOW) {
-    Serial.println("Bouton 1 appuyé : DRAPEAU ROUGE");
-    etatDrapeau = "rouge";
-    allumerLEDs(CRGB(255, 0, 0)); // Rouge
-    publierEtat();
-    delay(500);
-  } else if (digitalRead(bouton2) == LOW) {
-    Serial.println("Bouton 2 appuyé : DRAPEAU BLEU");
-    etatDrapeau = "bleu";
-    allumerLEDs(CRGB(0, 0, 255)); // Bleu
-    publierEtat();
-    delay(500);
-  } else if (etatDrapeau != "inactif") {
-    // Si aucun bouton n'est appuyé mais un drapeau était actif
-    etatDrapeau = "inactif";
-    eteindreLEDs();
-    publierEtat();
-  }
-  
-  // Envoi périodique de l'état à ThingSpeak (compatibilité)
+
   unsigned long maintenant = millis();
-  if (maintenant - dernierEnvoi >= intervalle) {
-    dernierEnvoi = maintenant;
-    
-    if (etatDrapeau == "rouge") {
-      envoyerDonnees("field3", "rouge");
-    } else if (etatDrapeau == "bleu") {
-      envoyerDonnees("field4", "bleu");
-    } else {
-      envoyerDonnees("field5", "inactif");
+
+  // Vérification du bouton 1
+  if (digitalRead(bouton1) == LOW) {
+    if (debutAppuiBouton1 == 0) {
+      debutAppuiBouton1 = maintenant; // Enregistrer le temps du premier appui
+    } else if (maintenant - debutAppuiBouton1 >= dureePression && !bouton1Maintenu) {
+      Serial.println("Bouton 1 maintenu 5 secondes, point accordé !");
+      etatDrapeau = "joueur1";
+      allumerLEDs(CRGB(joueur1.couleurR, joueur1.couleurG, joueur1.couleurB));
+      publierEtat();
+      bouton1Maintenu = true;
     }
+  } else {
+    debutAppuiBouton1 = 0;
+    bouton1Maintenu = false;
+  }
+
+  // Vérification du bouton 2
+  if (digitalRead(bouton2) == LOW) {
+    if (debutAppuiBouton2 == 0) {
+      debutAppuiBouton2 = maintenant;
+    } else if (maintenant - debutAppuiBouton2 >= dureePression && !bouton2Maintenu) {
+      Serial.println("Bouton 2 maintenu 5 secondes, point accordé !");
+      etatDrapeau = "joueur2";
+      allumerLEDs(CRGB(joueur2.couleurR, joueur2.couleurG, joueur2.couleurB));
+      publierEtat();
+      bouton2Maintenu = true;
+    }
+  } else {
+    debutAppuiBouton2 = 0;
+    bouton2Maintenu = false;
   }
 }
+
+
 
 // Fonction de rappel pour les messages MQTT reçus
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -117,23 +138,118 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("]: ");
   Serial.println(message);
   
-  // Traitement des commandes reçues
-  if (message == "rouge") {
-    etatDrapeau = "rouge";
-    allumerLEDs(CRGB(255, 0, 0));
-  } else if (message == "bleu") {
-    etatDrapeau = "bleu";
-    allumerLEDs(CRGB(0, 0, 255));
-  } else if (message == "inactif" || message == "off") {
-    etatDrapeau = "inactif";
-    eteindreLEDs();
+  // Vérifier le topic
+  if (String(topic) == mqtt_topic_joueurs) {
+    // Traitement des informations des joueurs
+    traiterInfosJoueurs(message);
+  } else if (String(topic) == mqtt_topic_subscribe) {
+    // Traitement des commandes reçues
+    if (message == "joueur1") {
+      etatDrapeau = "joueur1";
+      allumerLEDs(CRGB(joueur1.couleurR, joueur1.couleurG, joueur1.couleurB));
+    } else if (message == "joueur2") {
+      etatDrapeau = "joueur2";
+      allumerLEDs(CRGB(joueur2.couleurR, joueur2.couleurG, joueur2.couleurB));
+    } else if (message == "inactif" || message == "off") {
+      etatDrapeau = "inactif";
+      eteindreLEDs();
+    }
+  }
+}
+
+void traiterInfosJoueurs(String message) {
+  // Allocation de la mémoire pour le document JSON
+  StaticJsonDocument<256> doc;
+  
+  // Désérialiser le JSON
+  DeserializationError error = deserializeJson(doc, message);
+  
+  // Vérifier s'il y a une erreur
+  if (error) {
+    Serial.print("Erreur de décodage JSON: ");
+    Serial.println(error.c_str());
+    return;
+  }
+  
+  // Mise à jour des informations des joueurs
+  if (doc.containsKey("joueur1")) {
+    JsonObject j1 = doc["joueur1"];
+    if (j1.containsKey("nom")) joueur1.nom = j1["nom"].as<String>();
+    
+    // Vérifier si le format est avec "couleur" (format hexadécimal)
+    if (j1.containsKey("couleur")) {
+      String couleurHex = j1["couleur"].as<String>();
+      // Convertir couleur hex en RGB
+      uint32_t couleur = strtol(couleurHex.substring(1).c_str(), NULL, 16);
+      joueur1.couleurR = (couleur >> 16) & 0xFF;
+      joueur1.couleurG = (couleur >> 8) & 0xFF;
+      joueur1.couleurB = couleur & 0xFF;
+    } 
+    // Format avec r, g, b séparés (conserver pour la compatibilité)
+    else {
+      if (j1.containsKey("r")) joueur1.couleurR = j1["r"];
+      if (j1.containsKey("g")) joueur1.couleurG = j1["g"];
+      if (j1.containsKey("b")) joueur1.couleurB = j1["b"];
+    }
+    
+    Serial.println("Joueur 1 mis à jour: " + joueur1.nom + 
+                  " (R:" + String(joueur1.couleurR) + 
+                  ", G:" + String(joueur1.couleurG) + 
+                  ", B:" + String(joueur1.couleurB) + ")");
+  }
+  
+  if (doc.containsKey("joueur2")) {
+    JsonObject j2 = doc["joueur2"];
+    if (j2.containsKey("nom")) joueur2.nom = j2["nom"].as<String>();
+    
+    // Vérifier si le format est avec "couleur" (format hexadécimal)
+    if (j2.containsKey("couleur")) {
+      String couleurHex = j2["couleur"].as<String>();
+      // Convertir couleur hex en RGB
+      uint32_t couleur = strtol(couleurHex.substring(1).c_str(), NULL, 16);
+      joueur2.couleurR = (couleur >> 16) & 0xFF;
+      joueur2.couleurG = (couleur >> 8) & 0xFF;
+      joueur2.couleurB = couleur & 0xFF;
+    } 
+    // Format avec r, g, b séparés (conserver pour la compatibilité)
+    else {
+      if (j2.containsKey("r")) joueur2.couleurR = j2["r"];
+      if (j2.containsKey("g")) joueur2.couleurG = j2["g"];
+      if (j2.containsKey("b")) joueur2.couleurB = j2["b"];
+    }
+    
+    Serial.println("Joueur 2 mis à jour: " + joueur2.nom + 
+                  " (R:" + String(joueur2.couleurR) + 
+                  ", G:" + String(joueur2.couleurG) + 
+                  ", B:" + String(joueur2.couleurB) + ")");
   }
 }
 
 void publierEtat() {
-  client.publish(mqtt_topic_publish, etatDrapeau.c_str());
+  // Création d'un document JSON pour l'état
+  StaticJsonDocument<128> doc;
+  
+  doc["etat"] = etatDrapeau;
+  if (etatDrapeau == "joueur1") {
+    doc["nom"] = joueur1.nom;
+    doc["r"] = joueur1.couleurR;
+    doc["g"] = joueur1.couleurG;
+    doc["b"] = joueur1.couleurB;
+  } else if (etatDrapeau == "joueur2") {
+    doc["nom"] = joueur2.nom;
+    doc["r"] = joueur2.couleurR;
+    doc["g"] = joueur2.couleurG;
+    doc["b"] = joueur2.couleurB;
+  }
+  
+  // Sérialiser en chaîne JSON
+  char buffer[128];
+  serializeJson(doc, buffer);
+  
+  // Publier l'état
+  client.publish(mqtt_topic_publish, buffer);
   Serial.print("État publié: ");
-  Serial.println(etatDrapeau);
+  Serial.println(buffer);
 }
 
 void allumerLEDs(CRGB couleur) {
@@ -183,10 +299,14 @@ void reconnecterMQTT() {
     if (client.connect(clientId.c_str())) {
       Serial.println("connecté");
       
-      // S'abonner au topic de commande
+      // S'abonner aux topics
       client.subscribe(mqtt_topic_subscribe);
-      Serial.print("Abonné au topic: ");
+      Serial.print("Abonné au topic de commande: ");
       Serial.println(mqtt_topic_subscribe);
+      
+      client.subscribe(mqtt_topic_joueurs);
+      Serial.print("Abonné au topic des joueurs: ");
+      Serial.println(mqtt_topic_joueurs);
     } else {
       Serial.print("échec, rc=");
       Serial.print(client.state());

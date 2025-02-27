@@ -4,18 +4,10 @@ const http = require('http');
 const WebSocket = require('ws');
 const bodyParser = require('body-parser');
 const path = require('path');
-const cors = require('cors');
 
 // Configuration du serveur Express
 const app = express();
 const server = http.createServer(app);
-
-// Middleware CORS pour autoriser les requêtes provenant de votre frontend
-app.use(cors({
-  origin: 'http://127.0.0.1:5500', // Frontend URL
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
-}));
 
 // Création du serveur WebSocket
 const wss = new WebSocket.Server({ server });
@@ -26,20 +18,32 @@ app.use(bodyParser.json());
 // Servir les fichiers statiques depuis le dossier 'public'
 app.use(express.static(path.resolve('/Users/antoinecarlu/Desktop/MASTER/internet of things/projet/frontend/views')));
 
+
 // URL du broker MQTT
 const brokerUrl = 'mqtt://test.mosquitto.org';
 const drapeauxTopicPublish = 'drapeaux/commande';
-const drapeauxTopicJoueurs = 'drapeaux/joueurs'; 
-// Missing topic definition - adding it here
 const drapeauxTopicSubscribe = 'drapeaux/etat';
+const drapeauxTopicJoueurs = 'drapeaux/joueurs'; // Nouveau topic pour les infos des joueurs
 
 // Se connecter au broker MQTT
 const mqttClient = mqtt.connect(brokerUrl);
 
 // État des drapeaux et des joueurs
 let etatsDrapeaux = {};
-let infoJoueurs = {}; // Object pour garder les infos des joueurs connectés
-let joueursConnectes = 0; // Compteur des joueurs connectés
+let infoJoueurs = {
+  joueur1: {
+    nom: "Joueur 1",
+    r: 255,
+    g: 0,
+    b: 0
+  },
+  joueur2: {
+    nom: "Joueur 2",
+    r: 0,
+    g: 0,
+    b: 255
+  }
+};
 
 // Connexion au broker MQTT
 mqttClient.on('connect', () => {
@@ -55,10 +59,7 @@ mqttClient.on('connect', () => {
   });
   
   // Envoyer les infos des joueurs au démarrage
-  // Only send if there's actual data
-  if (Object.keys(infoJoueurs).length > 0) {
-    envoyerInfosJoueurs(infoJoueurs);
-  }
+  envoyerInfosJoueurs();
 });
 
 // Réception des messages MQTT
@@ -70,6 +71,7 @@ mqttClient.on('message', (topic, message) => {
     // Si le message concerne l'état d'un drapeau
     if (topic === drapeauxTopicSubscribe) {
       try {
+        // Essayer de parser le message JSON
         const etatData = JSON.parse(messageStr);
         etatsDrapeaux["drapeau1"] = etatData;
         
@@ -91,6 +93,7 @@ mqttClient.on('message', (topic, message) => {
         });
       } catch (e) {
         console.error('Erreur lors du parsing du message:', e);
+        // Essayer de traiter comme une chaîne simple pour rétrocompatibilité
         etatsDrapeaux["drapeau1"] = messageStr;
         wss.clients.forEach(client => {
           if (client.readyState === WebSocket.OPEN) {
@@ -109,14 +112,8 @@ mqttClient.on('message', (topic, message) => {
 });
 
 // Fonction pour envoyer les informations des joueurs via MQTT
-function envoyerInfosJoueurs(infoJoueursData) {
-  if (!infoJoueursData) {
-    console.error('Aucune donnée de joueurs à envoyer');
-    return;
-  }
-  
-  const message = JSON.stringify(infoJoueursData);
-  console.log('envoyer InfosJoueurs via MQTT', message);
+function envoyerInfosJoueurs() {
+  const message = JSON.stringify(infoJoueurs);
   mqttClient.publish(drapeauxTopicJoueurs, message);
   console.log('Informations des joueurs envoyées:', message);
 }
@@ -140,8 +137,8 @@ app.post('/api/joueurs', (req, res) => {
       infoJoueurs.joueur2 = {...infoJoueurs.joueur2, ...nouvellesInfos.joueur2};
     }
     
-    // Publish the updated player info to MQTT
-    envoyerInfosJoueurs(infoJoueurs);
+    // Envoyer les nouvelles informations au broker MQTT
+    envoyerInfosJoueurs();
     
     // Informer tous les clients WebSocket des changements
     wss.clients.forEach(client => {
@@ -173,53 +170,98 @@ app.get('/api/joueurs', (req, res) => {
   res.status(200).json(infoJoueurs);
 });
 
+
+app.post('/api/reset', (req, res) => {
+  // Réinitialiser les informations des joueurs
+  infoJoueurs = {
+    joueur1: {
+      nom: "Joueur 1",
+      r: 255,
+      g: 0,
+      b: 0
+    },
+    joueur2: {
+      nom: "Joueur 2",
+      r: 0,
+      g: 0,
+      b: 255
+    }
+  };
+
+  // Réinitialiser l'état des drapeaux
+  etatsDrapeaux = {};
+
+  // Envoyer les nouvelles informations aux clients WebSocket
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({
+        type: 'reset',
+        infoJoueurs,
+        etatsDrapeaux
+      }));
+    }
+  });
+
+  // Envoyer les nouvelles informations via MQTT
+  envoyerInfosJoueurs();
+
+  res.status(200).json({
+    success: true,
+    message: 'Partie réinitialisée',
+    data: { infoJoueurs, etatsDrapeaux }
+  });
+});
+
 // Connexion WebSocket avec les clients
 wss.on('connection', (ws) => {
   console.log('Nouveau client WebSocket connecté');
   
+  // Envoyer l'état actuel des drapeaux au nouveau client
+  ws.send(JSON.stringify({
+    type: 'etats-drapeaux',
+    data: etatsDrapeaux
+  }));
+  
+  // Envoyer les informations des joueurs au nouveau client
+  ws.send(JSON.stringify({
+    type: 'info-joueurs',
+    data: infoJoueurs
+  }));
+  
+  // Écouter les commandes du client WebSocket
   ws.on('message', (data) => {
-    try {
-      const parsedData = JSON.parse(data);
-
-      // Lorsque le joueur se connecte
-      if (parsedData.type === 'nouveau-joueur') {
-        const { nom, couleur } = parsedData;
+    const parsedData = JSON.parse(data);
+    if (parsedData.type === 'commande-drapeau') {
+      console.log('Commande reçue du client WebSocket:', parsedData);
+      // Publier la commande sur MQTT
+      mqttClient.publish(drapeauxTopicPublish, parsedData.commande);
+    }
+    
+    if (parsedData.type === 'update-joueur') {
+      console.log('Mise à jour joueur reçue:', parsedData);
+      
+      if (parsedData.joueur === 'joueur1' || parsedData.joueur === 'joueur2') {
+        // Mettre à jour les informations du joueur
+        infoJoueurs[parsedData.joueur] = {...infoJoueurs[parsedData.joueur], ...parsedData.info};
         
-        // Ajouter les informations du joueur
-        if (joueursConnectes === 0) {
-          infoJoueurs.joueur1 = { nom, couleur };
-          console.log('le joueur 1 est connecté');
-        } else if (joueursConnectes === 1) {
-          infoJoueurs.joueur2 = { nom, couleur };
-          console.log('le joueur 2 est connecté');
-        }
+        // Envoyer les nouvelles informations au broker MQTT
+        envoyerInfosJoueurs();
         
-        joueursConnectes++;
-
-        // Publish updated player info to MQTT
-        envoyerInfosJoueurs(infoJoueurs);
-
-        // Vérifier si les deux joueurs sont connectés
-        if (joueursConnectes === 2) {
-          // Envoyer une confirmation aux deux joueurs
-          wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: 'deux-joueurs-connectes'
-              }));
-            }
-          });
-        }
+        // Informer tous les clients
+        wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'info-joueurs',
+              data: infoJoueurs
+            }));
+          }
+        });
       }
-    } catch (err) {
-      console.error('Erreur lors du traitement du message WebSocket:', err);
     }
   });
-  
-  // Handle disconnection
+
   ws.on('close', () => {
     console.log('Client WebSocket déconnecté');
-    joueursConnectes = Math.max(0, joueursConnectes - 1);
   });
 });
 
