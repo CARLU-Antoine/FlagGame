@@ -30,7 +30,7 @@ document.getElementById("myForm").addEventListener("submit", function (event) {
   );
 
   document.querySelector("#btn-validation-connexion").style.display = "none";
-  document.querySelector("#loader").style.display = "block";
+  document.querySelector("#container-loader").style.display = "flex";
 });
 
 // Événements WebSocket

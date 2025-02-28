@@ -5,8 +5,8 @@
 #include <ArduinoJson.h> // Ajouté pour gérer les données JSON
 
 // Configuration Wi-Fi
-const char *ssid = "Livebox-DE34_exterieur";
-const char *password = "N5x479G7PxzCzb5Cts";
+const char *ssid = "CFAINSTA_STUDENTS";
+const char *password = "Cf@InSt@-$tUd3nT";
 
 // Configuration MQTT
 const char* mqtt_server = "test.mosquitto.org"; // Broker MQTT public
